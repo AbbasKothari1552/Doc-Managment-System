@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gradient-to-br from-primary-50 to-primary-100 min-h-screen font-sans">
+
+    <!-- Navbar -->
+    <nav class="flex justify-between items-center px-6 py-4 bg-white shadow">
+        <div class="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-primary-600" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2z" />
+            </svg>
+            <h1 class="text-xl font-bold text-primary-800">RAG Chat Assistant</h1>
+        </div>
+    </nav>
+
+    <!-- Chat Section -->
+    <div class="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg flex flex-col h-[80vh]">
+        <!-- Chat messages -->
+        <div id="chat-container" class="flex-grow p-6 overflow-y-auto space-y-4">
+            <!-- Messages will appear here -->
+        </div>
+
+        <!-- Input box -->
+        <form id="chat-form" class="flex items-center p-4 border-t bg-gray-50">
+            <input id="query" type="text" placeholder="Type your question..."
+                class="flex-grow px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            <button type="submit"
+                class="ml-3 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById("chat-form");
+        const chatContainer = document.getElementById("chat-container");
+        const queryInput = document.getElementById("query");
+
+        function addMessage(content, sender = "user") {
+            const wrapper = document.createElement("div");
+            wrapper.className = sender === "user" ? "flex justify-end" : "flex justify-start";
+
+            const bubble = document.createElement("div");
+            bubble.className =
+                sender === "user"
+                    ? "bg-primary-600 text-white px-4 py-2 rounded-lg max-w-xs"
+                    : "bg-gray-100 text-gray-800 px-4 py-2 rounded-lg max-w-xs";
+
+            bubble.innerHTML = content;
+            wrapper.appendChild(bubble);
+            chatContainer.appendChild(wrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        chatForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            // Add user message
+            addMessage(query, "user");
+            queryInput.value = "";
+
+            // Show loading indicator
+            const loadingMsg = document.createElement("div");
+            loadingMsg.className = "flex justify-start";
+            loadingMsg.innerHTML = `<div class="bg-gray-200 text-gray-600 px-4 py-2 rounded-lg">...</div>`;
+            chatContainer.appendChild(loadingMsg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query }),
+                });
+
+                const data = await response.json();
+                chatContainer.removeChild(loadingMsg);
+
+                if (data.answer) {
+                    const parsed = marked.parse(data.answer);
+                    addMessage(parsed, "bot");
+                    if (data.references && data.references.length > 0) {
+                        const refsHtml = data.references
+                            .map(
+                                (ref) =>
+                                    `<div class="mt-2 text-sm text-gray-500"><strong>${ref.file_name}</strong> - ${ref.snippet} <a href="${ref.file_path}" target="_blank" class="text-primary-600 underline">Open</a></div>`
+                            )
+                            .join("");
+                        addMessage(`<div><strong>References:</strong>${refsHtml}</div>`, "bot");
+                    }
+                } else {
+                    addMessage("Sorry, I couldn't generate an answer.", "bot");
+                }
+            } catch (err) {
+                chatContainer.removeChild(loadingMsg);
+                addMessage("⚠️ Error contacting server.", "bot");
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+
+</html>

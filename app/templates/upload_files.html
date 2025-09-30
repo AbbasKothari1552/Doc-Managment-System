@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Management UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            secondary: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              200: '#ddd6fe',
+              300: '#c4b5fd',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            }
+          },
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .folder:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .document-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-area {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+      border-color: #0ea5e9;
+      background-color: #f0f9ff;
+    }
+
+    .upload-area.drag-over {
+      border-color: #0ea5e9;
+      background-color: #e0f2fe;
+    }
+
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-primary-50 to-primary-100 min-h-screen p-6 font-sans">
+
+  <!-- Category veification Modal -->
+  <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Confirm File Categories</h2>
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-left border border-gray-200 rounded-lg">
+          <thead class="bg-gray-100 text-sm">
+            <tr>
+              <th class="px-4 py-2 border-b">File Name</th>
+              <th class="px-4 py-2 border-b">Predicted Category</th>
+            </tr>
+          </thead>
+          <tbody id="categoryTableBody"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button onclick="closeCategoryModal()"
+          class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100">Cancel</button>
+        <button onclick="submitConfirmedCategories()"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Confirm & Save</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Navigation -->
+  <nav class="flex justify-between items-center mb-8">
+    <div class="flex items-center space-x-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <h1 class="text-2xl font-bold text-primary-800">DocManager Pro</h1>
+    </div>
+    <div class="flex space-x-4">
+      <button id="uploadNavBtn"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <span>Upload</span>
+      </button>
+      <button id="libraryNavBtn"
+        class="px-4 py-2 bg-white text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+        </svg>
+        <span>Library</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Page 1: Upload Document -->
+  <div id="uploadSection" class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+    <div class="flex items-center mb-6">
+      <div class="p-3 rounded-full bg-primary-100 mr-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">Upload New Document</h2>
+        <p class="text-gray-600">Add files to your document library</p>
+      </div>
+    </div>
+
+    <form id="uploadForm" class="space-y-6">
+      <div id="dropZone" class="upload-area rounded-xl p-8 text-center cursor-pointer">
+        <div class="max-w-md mx-auto">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-primary-400" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-700">Drag and drop files here</h3>
+          <p class="mt-1 text-sm text-gray-500">or click to browse files</p>
+          <input type="file" id="fileInput" class="hidden" multiple required />
+        </div>
+      </div>
+      <div id="filePreview" class="hidden">
+        <div class="flex items-center justify-between bg-primary-50 rounded-lg p-4">
+          <div class="flex items-center space-x-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p id="fileName" class="font-medium text-gray-800">Document.pdf</p>
+              <p id="fileSize" class="text-xs text-gray-500">2.4 MB</p>
+            </div>
+          </div>
+          <button type="button" id="removeFile" class="text-red-500 hover:text-red-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block mb-2 font-medium text-gray-700">Category</label>
+          <select id="categorySelect"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="" disabled selected>Select a category</option>
+            <option value="HR">HR</option>
+            <option value="Finance">Finance</option>
+            <option value="Legal">Legal</option>
+            <option value="Operations">Operations</option>
+            <option value="Marketing">Marketing</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2 font-medium text-gray-700">Tags (optional)</label>
+          <input type="text" id="tagsInput" placeholder="e.g. contract, Q1, draft"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button type="button" id="cancelUpload"
+          class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+        <button type="submit" id="uploadBtn"
+          class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center space-x-2">
+          <span>Upload Document</span>
+          <svg id="uploadSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+        </button>
+      </div>
+    </form>
+
+    <div id="uploadStatus" class="mt-6 hidden">
+      <div class="p-4 bg-green-50 rounded-lg border border-green-200 flex items-start">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mt-0.5 mr-3" viewBox="0 0 20 20"
+          fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clip-rule="evenodd" />
+        </svg>
+        <div>
+          <h4 class="font-medium text-green-800">Upload successful!</h4>
+          <p class="text-sm text-green-600 mt-1">Your document has been uploaded and processed. You can now view it in
+            your library.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page 2: Document Library View -->
+  <div id="librarySection" class="max-w-7xl mx-auto hidden">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">Document Library</h2>
+        <p class="text-gray-600">Browse and manage all your documents</p>
+      </div>
+      <button id="newDocumentBtn"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        <span>New Document</span>
+      </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div class="relative flex-grow max-w-xl">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input type="text" id="searchInput" placeholder="Search documents..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            oninput="filterDocuments()">
+        </div>
+        <div class="flex space-x-2">
+          <select id="sortSelect"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="name-asc">Sort by: Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="date-new">Date (Newest)</option>
+            <option value="date-old">Date (Oldest)</option>
+          </select>
+          <button id="filterBtn" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <h3 class="font-medium text-gray-700 mb-4">Categories</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+        <div
+          class="folder bg-white p-4 rounded-lg shadow border border-gray-100 text-center cursor-pointer transition hover:border-primary-300"
+          onclick="loadFolder('HR')">
+          <div class="p-3 bg-blue-50 rounded-full inline-flex mb-3">
+            <img src="https://img.icons8.com/color/48/folder-invoices.png" class="w-8 h-8" alt="HR" />
+          </div>
+          <p class="font-medium text-gray-800">HR</p>
+          <p class="text-xs text-gray-500 mt-1">24 documents</p>
+        </div>
+        <div
+          class="folder bg-white p-4 rounded-lg shadow border border-gray-100 text-center cursor-pointer transition hover:border-primary-300"
+          onclick="loadFolder('Finance')">
+          <div class="p-3 bg-green-50 rounded-full inline-flex mb-3">
+            <img src="https://img.icons8.com/color/48/folder-documents.png" class="w-8 h-8" alt="Finance" />
+          </div>
+          <p class="font-medium text-gray-800">Finance</p>
+          <p class="text-xs text-gray-500 mt-1">18 documents</p>
+        </div>
+        <div
+          class="folder bg-white p-4 rounded-lg shadow border border-gray-100 text-center cursor-pointer transition hover:border-primary-300"
+          onclick="loadFolder('Legal')">
+          <div class="p-3 bg-purple-50 rounded-full inline-flex mb-3">
+            <img src="https://img.icons8.com/color/48/folder.png" class="w-8 h-8" alt="Legal" />
+          </div>
+          <p class="font-medium text-gray-800">Legal</p>
+          <p class="text-xs text-gray-500 mt-1">12 documents</p>
+        </div>
+        <div
+          class="folder bg-white p-4 rounded-lg shadow border border-gray-100 text-center cursor-pointer transition hover:border-primary-300"
+          onclick="loadFolder('Operations')">
+          <div class="p-3 bg-yellow-50 rounded-full inline-flex mb-3">
+            <img src="https://img.icons8.com/color/48/folder.png" class="w-8 h-8" alt="Operations" />
+          </div>
+          <p class="font-medium text-gray-800">Operations</p>
+          <p class="text-xs text-gray-500 mt-1">32 documents</p>
+        </div>
+        <div
+          class="folder bg-white p-4 rounded-lg shadow border border-gray-100 text-center cursor-pointer transition hover:border-primary-300"
+          onclick="loadFolder('Marketing')">
+          <div class="p-3 bg-pink-50 rounded-full inline-flex mb-3">
+            <img src="https://img.icons8.com/color/48/folder.png" class="w-8 h-8" alt="Marketing" />
+          </div>
+          <p class="font-medium text-gray-800">Marketing</p>
+          <p class="text-xs text-gray-500 mt-1">15 documents</p>
+        </div>
+      </div>
+
+      <div id="folderContents" class="hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h3 id="folderTitle" class="text-xl font-semibold text-gray-800"></h3>
+          <button onclick="backToCategories()"
+            class="text-primary-600 hover:text-primary-800 flex items-center text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to categories
+          </button>
+        </div>
+
+        <div id="documentsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Documents will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h3 class="font-medium text-gray-700 mb-4">Recent Documents</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Category</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date Added</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Size</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <img src="https://img.icons8.com/color/48/pdf.png" class="h-10 w-10" alt="PDF" />
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">Employee Handbook 2023</div>
+                    <div class="text-sm text-gray-500">PDF</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">HR</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 days ago</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2.4 MB</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="previewDocument('https://example.com/doc1.pdf', 'Employee Handbook 2023')"
+                  class="text-primary-600 hover:text-primary-900 mr-3">View</button>
+                <button class="text-gray-600 hover:text-gray-900">Download</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <img src="https://img.icons8.com/color/48/ms-word.png" class="h-10 w-10" alt="Word" />
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">Q1 Financial Report</div>
+                    <div class="text-sm text-gray-500">DOCX</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Finance</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1 week ago</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1.8 MB</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="previewDocument('https://example.com/doc2.docx', 'Q1 Financial Report')"
+                  class="text-primary-600 hover:text-primary-900 mr-3">View</button>
+                <button class="text-gray-600 hover:text-gray-900">Download</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <img src="https://img.icons8.com/color/48/microsoft-excel-2019.png" class="h-10 w-10" alt="Excel" />
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">Annual Budget 2023</div>
+                    <div class="text-sm text-gray-500">XLSX</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Finance</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 weeks ago</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3.2 MB</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="previewDocument('https://example.com/doc3.xlsx', 'Annual Budget 2023')"
+                  class="text-primary-600 hover:text-primary-900 mr-3">View</button>
+                <button class="text-gray-600 hover:text-gray-900">Download</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Preview -->
+  <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between p-4 border-b">
+        <h4 id="previewTitle" class="text-lg font-bold text-gray-800"></h4>
+        <div class="flex space-x-3">
+          <button class="p-1 text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+          <button onclick="closePreview()" class="p-1 text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex-grow overflow-auto">
+        <iframe id="previewFrame" class="w-full h-full min-h-[70vh] border-0" frameborder="0"></iframe>
+      </div>
+      <div class="p-4 border-t flex justify-between items-center bg-gray-50 rounded-b-xl">
+        <div class="flex space-x-2">
+          <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            Download
+          </button>
+          <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Share
+          </button>
+        </div>
+        <button onclick="closePreview()"
+          class="px-4 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = "{{ base_url }}";
+  </script>
+  <script>
+    // DOM Elements
+    const uploadNavBtn = document.getElementById('uploadNavBtn');
+    const libraryNavBtn = document.getElementById('libraryNavBtn');
+    const uploadSection = document.getElementById('uploadSection');
+    const librarySection = document.getElementById('librarySection');
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const cancelUpload = document.getElementById('cancelUpload');
+    const newDocumentBtn = document.getElementById('newDocumentBtn');
+    const folderContents = document.getElementById('folderContents');
+    const folderTitle = document.getElementById('folderTitle');
+    const documentsGrid = document.getElementById('documentsGrid');
+    const previewModal = document.getElementById('previewModal');
+    const previewFrame = document.getElementById('previewFrame');
+    const previewTitle = document.getElementById('previewTitle');
+    const searchInput = document.getElementById('searchInput');
+    let currentDocuments = [];
+    const categoryModal = document.getElementById('categoryModal');
+    const categoryTableBody = document.getElementById('categoryTableBody');
+    let uploadedFilesWithCategory = [];
+    let availableCategories = [];
+
+    // fetch categories
+    async function fetchCategories() {
+      try {
+        const res = await fetch(`${BASE_URL}/api/files/categories`);
+        const data = await res.json();
+        availableCategories = data.categories || [];
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+        availableCategories = ["HR", "Finance", "Legal"]; // fallback
+      }
+    }
+
+
+    // Navigation
+    uploadNavBtn.addEventListener('click', () => {
+      uploadSection.classList.remove('hidden');
+      librarySection.classList.add('hidden');
+      uploadStatus.classList.add('hidden');
+      filePreview.classList.add('hidden');
+      uploadForm.reset();
+    });
+
+    libraryNavBtn.addEventListener('click', () => {
+      uploadSection.classList.add('hidden');
+      librarySection.classList.remove('hidden');
+    });
+
+    newDocumentBtn.addEventListener('click', () => {
+      uploadSection.classList.remove('hidden');
+      librarySection.classList.add('hidden');
+      uploadStatus.classList.add('hidden');
+      filePreview.classList.add('hidden');
+      uploadForm.reset();
+    });
+
+    // Drag and drop file upload
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+      dropZone.classList.add('drag-over');
+    }
+
+    function unhighlight() {
+      dropZone.classList.remove('drag-over');
+    }
+
+    dropZone.addEventListener('drop', handleDrop, false);
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) {
+        handleFiles(files);
+      }
+    }
+
+    fileInput.addEventListener('change', function () {
+      if (this.files.length) {
+        handleFiles(this.files);
+      }
+    });
+
+    function handleFiles(files) {
+      const file = files[0];
+      if (file) {
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        filePreview.classList.remove('hidden');
+      }
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+
+    function showCategoryModal(files) {
+      uploadedFilesWithCategory = files;
+      categoryTableBody.innerHTML = '';
+
+      files.forEach((file, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+      <td class="px-4 py-2 border-b">${file.filename}</td>
+      <td class="px-4 py-2 border-b">
+        <select data-file-id="${file.file_id}" class="categoryDropdown px-2 py-1 border rounded-md w-full">
+          ${availableCategories.map(cat =>
+          `<option value="${cat}" ${file.predicted_category === cat ? 'selected' : ''}>${cat}</option>`
+        ).join('')}
+        </select>
+      </td>
+    `;
+        categoryTableBody.appendChild(row);
+      });
+
+      categoryModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeCategoryModal() {
+      categoryModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    async function submitConfirmedCategories() {
+      const dropdowns = document.querySelectorAll('.categoryDropdown');
+      const finalData = Array.from(dropdowns).map(select => ({
+        file_id: select.getAttribute('data-file-id'),
+        category: select.value
+      }));
+
+      try {
+        await fetch(`${BASE_URL}/api/files/verify-category`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(finalData)
+        });
+
+        closeCategoryModal();
+        uploadStatus.classList.remove('hidden');
+        uploadForm.reset();
+        filePreview.classList.add('hidden');
+        uploadStatus.scrollIntoView({ behavior: 'smooth' });
+
+      } catch (err) {
+        alert("Failed to save categories.");
+        console.error(err);
+      }
+    }
+
+
+    removeFile.addEventListener('click', function () {
+      fileInput.value = '';
+      filePreview.classList.add('hidden');
+    });
+
+    uploadForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      console.log("🚀 Form submitted");
+
+      if (!fileInput.files.length) {
+        alert('Please select a file to upload');
+        return;
+      }
+
+      // call fetch category function 
+      await fetchCategories();
+
+      uploadBtn.disabled = true;
+      uploadSpinner.classList.remove('hidden');
+
+      const formData = new FormData();
+      // Add all files 
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append('files', fileInput.files[i]);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+
+      try {
+        console.log("📤 Sending fetch request...");
+
+        const response = await fetch(`${BASE_URL}/api/files/upload`, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        console.log("✅ Received response:", response);
+
+        const text = await response.text();
+        console.log("Raw response body:", text);
+
+        let result;
+        try {
+          result = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Failed to parse response", parseError);
+          alert("Server returned non-JSON data");
+          return;
+        }
+
+        if (response.status === 200) {
+
+          alert("Upload successful!");
+
+          // const successFiles = result.results.filter(r => r.status === "success" && r.predicted_category);
+          // if (successFiles.length > 0) {
+          //   showCategoryModal(successFiles);
+          // } else {
+          //   uploadStatus.classList.remove('hidden');
+          //   uploadForm.reset();
+          //   filePreview.classList.add('hidden');
+          //   uploadStatus.scrollIntoView({ behavior: 'smooth' });
+          // }
+        } else {
+          console.error("Upload error result:", result);
+          alert("Upload failed: Some files may not have processed successfully.");
+        }
+
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.error("Upload network error:", err);
+        alert("Upload failed. Check console for details.");
+      } finally {
+        uploadSpinner.classList.add('hidden');
+        uploadBtn.disabled = false;
+      }
+    });
+
+
+    // 
+    // 
+    // 
+
+
+    cancelUpload.addEventListener('click', function () {
+      uploadForm.reset();
+      filePreview.classList.add('hidden');
+      uploadStatus.classList.add('hidden');
+      libraryNavBtn.click();
+    });
+
+    // Document library functions
+    function loadFolder(folderName) {
+      folderTitle.textContent = folderName;
+      folderContents.classList.remove('hidden');
+      document.querySelector('.grid.grid-cols-2').classList.add('hidden');
+
+      // Simulate loading documents
+      documentsGrid.innerHTML = '<div class="col-span-3 text-center py-8"><div class="animate-pulse text-gray-500">Loading documents...</div></div>';
+
+      setTimeout(() => {
+        const sampleDocuments = [
+          {
+            name: `${folderName} Document 1`,
+            type: 'PDF',
+            date: 'Today',
+            size: '2.4 MB',
+            category: folderName,
+            tags: ['important', 'draft']
+          },
+          {
+            name: `${folderName} Report Q1`,
+            type: 'DOCX',
+            date: '1 week ago',
+            size: '1.8 MB',
+            category: folderName,
+            tags: ['report', 'quarterly']
+          },
+          {
+            name: `${folderName} Guidelines`,
+            type: 'PDF',
+            date: '2 weeks ago',
+            size: '3.2 MB',
+            category: folderName,
+            tags: ['policy', 'official']
+          },
+          {
+            name: `${folderName} Meeting Notes`,
+            type: 'DOCX',
+            date: '3 weeks ago',
+            size: '0.8 MB',
+            category: folderName,
+            tags: ['minutes', 'internal']
+          },
+          {
+            name: `${folderName} Budget`,
+            type: 'XLSX',
+            date: '1 month ago',
+            size: '4.1 MB',
+            category: folderName,
+            tags: ['financial', 'approved']
+          },
+          {
+            name: `${folderName} Process Flow`,
+            type: 'PDF',
+            date: '2 months ago',
+            size: '1.5 MB',
+            category: folderName,
+            tags: ['procedure', 'reference']
+          }
+        ];
+
+        currentDocuments = sampleDocuments;
+        renderDocuments(sampleDocuments);
+      }, 800);
+    }
+
+    function backToCategories() {
+      folderContents.classList.add('hidden');
+      document.querySelector('.grid.grid-cols-2').classList.remove('hidden');
+    }
+
+    function renderDocuments(documents) {
+      documentsGrid.innerHTML = '';
+
+      documents.forEach(doc => {
+        const icon = doc.type === 'PDF' ? 'pdf' :
+          doc.type === 'DOCX' ? 'ms-word' :
+            'microsoft-excel-2019';
+
+        const card = document.createElement('div');
+        card.className = 'document-card bg-white p-4 rounded-lg shadow border border-gray-100 cursor-pointer transition hover:border-primary-300';
+        card.innerHTML = `
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <img src="https://img.icons8.com/color/48/${icon}.png" class="h-10 w-10" alt="${doc.type}"/>
+            </div>
+            <div class="ml-3 flex-grow">
+              <h4 class="font-medium text-gray-800 truncate">${doc.name}</h4>
+              <p class="text-xs text-gray-500 mt-1">${doc.date} • ${doc.size}</p>
+              <div class="mt-2 flex flex-wrap gap-1">
+                ${doc.tags.map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">${tag}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end space-x-2">
+            <button onclick="previewDocument('https://example.com/doc.pdf', '${doc.name}')" class="px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-sm hover:bg-primary-100">
+              View
+            </button>
+            <button class="px-3 py-1 bg-gray-50 text-gray-600 rounded-lg text-sm hover:bg-gray-100">
+              Download
+            </button>
+          </div>
+        `;
+
+        documentsGrid.appendChild(card);
+      });
+    }
+
+    function filterDocuments() {
+      const searchTerm = searchInput.value.toLowerCase();
+      if (searchTerm === '') {
+        renderDocuments(currentDocuments);
+        return;
+      }
+
+      const filtered = currentDocuments.filter(doc =>
+        doc.name.toLowerCase().includes(searchTerm) ||
+        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+      );
+
+      renderDocuments(filtered);
+    }
+
+    // Document preview
+    function previewDocument(url, title) {
+      previewTitle.textContent = title;
+      previewFrame.src = url;
+      previewModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePreview() {
+      previewModal.classList.add('hidden');
+      previewFrame.src = '';
+      document.body.style.overflow = '';
+    }
+
+    // Close modal when clicking outside
+    previewModal.addEventListener('click', function (e) {
+      if (e.target === previewModal) {
+        closePreview();
+      }
+    });
+
+    // Initialize with upload section visible
+    uploadSection.classList.remove('hidden');
+    librarySection.classList.add('hidden');
+  </script>
+</body>
+
+</html>

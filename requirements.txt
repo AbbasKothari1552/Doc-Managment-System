@@ -1,0 +1,30 @@
+# FastAPI and related libraries
+fastapi
+uvicorn
+python-multipart
+
+# document extraction library
+aiofiles
+pdf2image
+pillow
+python-docx
+PyPDF2
+pdfminer.six 
+openpyxl
+easyocr
+
+# Vector DB libraries
+qdrant-client 
+sentence-transformers 
+numpy
+
+# Langchain library
+langchain
+langgraph
+langsmith
+langchain-groq
+langchain-community
+
+
+python-dotenv
+pydantic-settings
