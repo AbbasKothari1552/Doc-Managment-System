@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 
 from contextlib import asynccontextmanager
 from app.services.qdrant_client import qdrant_manager
-
+from app.core.settings import settings
 from app.api import (
     upload_router,
     chat_router
@@ -15,7 +15,6 @@ from app.api import (
 from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
-BASE_URL = "http://localhost:8000"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,10 +55,10 @@ app.include_router(chat_router, prefix="/api")
 @app.get("/upload", response_class=HTMLResponse)
 def read_root(request: Request):
     print("Templates:", templates)
-    return templates.TemplateResponse("upload_files.html", {"request": request, "base_url": BASE_URL})
+    return templates.TemplateResponse("upload_files.html", {"request": request, "base_url": settings.BASE_URL})
 
 # Rag chat html page
 @app.get("/rag_chat", response_class=HTMLResponse)
 def rag_chat(request: Request):
     print("Templates:", templates)
-    return templates.TemplateResponse("rag_chat.html", {"request": request, "base_url": BASE_URL})
+    return templates.TemplateResponse("rag_chat.html", {"request": request, "base_url": settings.BASE_URL})

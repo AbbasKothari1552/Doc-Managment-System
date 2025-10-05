@@ -9,13 +9,15 @@ load_dotenv()
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_file_encoding="utf-8")
 
+    BASE_URL: str
+
     GROQ_API_KEY: str
 
     # QDrant Vector DB settings
     QDRANT_URL: str
     QDRANT_API_KEY: str = ""
-    COLLECTION_NAME: str = "documents"
-    VECTOR_SIZE: int = 384
+    COLLECTION_NAME: str = "documents_test"
+    VECTOR_SIZE: int = 1024
     DISTANCE: Distance = Distance.COSINE
 
     # LLM Models
@@ -29,7 +31,7 @@ class Settings(BaseSettings):
 
     # logging settings
     DEBUG: bool = False
-    LOG_LEVEL: str = "ERROR"
+    LOG_LEVEL: str = "DEBUG"
     LOG_DIR: Path  = Path("logs")
 
     # Langsmith settings

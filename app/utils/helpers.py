@@ -9,6 +9,6 @@ def get_chat_model() -> ChatGroq:
     """Return a ChatGroq model instance."""
     return ChatGroq(
         api_key=settings.GROQ_API_KEY,
-        model=settings.OPENAI_GPT_20,
+        model=settings.OPENAI_GPT_120,
         temperature=settings.TEMPERATURE,
     )

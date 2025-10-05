@@ -79,7 +79,7 @@ class AsyncQdrantManager:
         # logger.info(f"Saved message embedding for user={payload.get('user_id')}, thread={payload.get('thread_id')}")
 
     # ------------------ SEARCH ------------------
-    async def search_embedding(self, embedding: List[float], limit=5, collection_name=settings.COLLECTION_NAME):
+    async def search_embedding(self, embedding: List[float], limit=15, collection_name=settings.COLLECTION_NAME):
         """Retrieve most relevant past messages for a user"""
         if not self.is_connected:
             await self.connect()
