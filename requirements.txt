@@ -12,6 +12,7 @@ PyPDF2
 pdfminer.six 
 openpyxl
 easyocr
+pytesseract
 
 # Vector DB libraries
 qdrant-client 

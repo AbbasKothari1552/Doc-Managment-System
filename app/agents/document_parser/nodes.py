@@ -10,7 +10,8 @@ from app.agents.document_parser.tools import (
     extract_docx_text, 
     extract_excel_text, 
     extract_image_text, 
-    extract_pdf_text
+    extract_pdf_text,
+    extract_arabic_with_tesseract
     )
 
 from app.utils.logger import get_logger
@@ -26,7 +27,7 @@ def get_extractor(filepath: str):
         file_type = ext[1:].lower() if ext else ''  # Remove the dot and convert to lower case
 
         if file_type == "pdf":
-            return extract_pdf_text
+            return extract_arabic_with_tesseract
         elif file_type in ["doc", "docx"]:
             return extract_docx_text
         elif file_type in ["xls", "xlsx"]:
